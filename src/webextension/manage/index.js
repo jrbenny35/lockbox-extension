@@ -13,14 +13,17 @@ import App from "./components/app";
 import { listItems } from "./actions";
 import reducer from "./reducers";
 import initializeMessagePorts from "./message-ports";
+import * as telemetry from "../telemetry";
 
 const store = createStore(reducer, undefined, applyMiddleware(thunk));
 store.dispatch(listItems());
 initializeMessagePorts(store);
 
+telemetry.recordEvent("render", "manage");
+
 ReactDOM.render(
   <Provider store={store}>
-    <AppLocalizationProvider bundle="manage" availableLocales={["en-US"]}
+    <AppLocalizationProvider bundles={["manage", "widgets"]}
                              userLocales={navigator.languages}>
       <App/>
     </AppLocalizationProvider>

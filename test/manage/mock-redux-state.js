@@ -11,10 +11,16 @@ export const initialState = {
     pendingAdd: null,
   },
   ui: {
-    newItem: false,
+    editing: false,
+    editorChanged: false,
+    hideHome: false,
     selectedItemId: null,
-    filter: [],
   },
+  modal: {
+    id: null,
+    props: null,
+  },
+  filter:  "",
 };
 
 export const filledState = {
@@ -41,8 +47,14 @@ export const filledState = {
     pendingAdd: null,
   },
   ui: {
-    newItem: false,
+    editing: false,
+    editorChanged: false,
+    hideHome: false,
     selectedItemId: "1",
-    filter: [],
   },
+  modal: {
+    id: null,
+    props: null,
+  },
+  filter:  "",
 };

@@ -4,23 +4,55 @@
 
 .item-details {
   display: grid;
-  grid-template-columns: max-content 200px;
+  grid-template-columns: minmax(200px, 1fr);
   grid-column-gap: 1em;
+  grid-row-gap: 3px;
+  margin: 2em;
+  max-width: 320px;
 }
 
-.item-details > label {
+.item-details > h1 {
+  margin-top: 7px;
+  margin-inline-start: 7px;
+  font-weight: normal;
+  font-size: 1.5em;
+}
+
+.item-details > label,
+.item-details > .field {
   display: contents;
-}
-
-.item-details > label > span:first-child {
-  /* This lines up our labels with the text in <input> elements. */
-  margin-top: 3.5px;
-}
-
-.item-details > p > button + button {
-  margin-inline-start: 1ch;
 }
 
 .item-details textarea {
   resize: none;
+}
+
+.label-text {
+  margin-inline-start: 7px;
+  margin-top: 0.5em;
+  color: #626262;
+}
+
+.field-text {
+  /* This lines up our labels with the text in <input> elements. */
+  margin-top: 3.5px;
+  min-height: 20.5px;
+  margin-inline-start: 7px;
+}
+
+.inline-button {
+  display: flex;
+  overflow: hidden;
+}
+
+.inline-button > *:first-child {
+  flex: 1;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+.buttons {
+  border-top: 1px solid #d6d6d6;
+  margin-top: 1em;
+  padding: 1em 0;
 }

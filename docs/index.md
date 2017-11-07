@@ -1,5 +1,10 @@
-# Welcome to Lockbox's Docs
+# Lockbox Extension
 
-## Commands
+Click below to install the Lockbox extension:
 
-* `Ctrl-Shift-L`: open Lockbox sidebar
+[install][install-link]{: .button-link }
+
+[install-link]: https://testpilot.firefox.com/files/lockbox@mozilla.com/latest
+
+**Note: This is a rapidly evolving prototype that will change. Any data stored
+is not guaranteed to be retained in future updates.**

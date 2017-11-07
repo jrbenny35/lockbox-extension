@@ -8,14 +8,20 @@ import combineLoaders from "webpack-combine-loaders";
 import CopyWebpackPlugin from "copy-webpack-plugin";
 import ExtractTextPlugin from "extract-text-webpack-plugin";
 import HTMLWebpackPlugin from "html-webpack-plugin";
-import XMLWebpackPlugin from "xml-webpack-plugin";
 import MinifyPlugin from "babel-minify-webpack-plugin";
 
+import DirListWebpackPlugin from "./dir-list-webpack-plugin";
 import JSONWebpackPlugin from "./json-webpack-plugin";
 import thisPackage from "./package.json";
 
-const NODE_ENV = (process.env.NODE_ENV) ? process.env.NODE_ENV.toLowerCase() :
-                 "development";
+const NODE_ENV = (() => {
+  if (process.env.NODE_ENV) {
+    return process.env.NODE_ENV.toLowerCase();
+  } else if (process.env.NODE_SUGGESTED_ENV) {
+    return process.env.NODE_SUGGESTED_ENV.toLowerCase();
+  }
+  return "development";
+})();
 
 const cssLoader = {
   loader: "css-loader",
@@ -29,6 +35,7 @@ const cssLoader = {
 
 let extraPlugins = [];
 let extraLoaders = [];
+let extraCopy = [];
 let htmlMinifyOptions = false;
 if (NODE_ENV === "production") {
 
@@ -45,12 +52,30 @@ if (NODE_ENV === "production") {
     }),
   });
 
+  extraCopy.push({from: "webextension/locales/locales.json",
+                  to: "webextension/locales/"});
+
   htmlMinifyOptions = {
     removeComments: true,
     collapseWhitespace: true,
   };
 
 } else {
+
+  extraPlugins.push(
+    new DirListWebpackPlugin({
+      directory: "webextension/locales",
+      filename: "webextension/locales/locales.json",
+      filter(file, stats) {
+        return file.charAt(0) !== "." && stats.isDirectory();
+      },
+      compareFunction(a, b) {
+        // Ensure en-US goes first, since it's the default.
+        const pre = (s) => s === "en-US" ? s : "z" + s;
+        return pre(a).localeCompare(pre(b));
+      },
+    }),
+  );
 
   extraLoaders.push({
     test: /\.css$/,
@@ -70,6 +95,9 @@ export default {
   entry: {
     "webextension/background": "./webextension/background/index.js",
     "webextension/manage/index": "./webextension/manage/index.js",
+    "webextension/firstrun/index": "./webextension/firstrun/index.js",
+    "webextension/popup/unlock/index": "./webextension/popup/unlock/index.js",
+    "webextension/settings/index": "./webextension/settings/index.js",
   },
 
   output: {
@@ -79,14 +107,14 @@ export default {
   },
 
   module: {
-    loaders: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        loader: "babel-loader",
-      },
-      ...extraLoaders,
-    ],
+    loaders: [{
+      test: /\.js$/,
+      exclude: /node_modules/,
+      loader: "babel-loader",
+    }, {
+      test: /\.txt$/,
+      use: "raw-loader",
+    }, ...extraLoaders],
   },
 
   plugins: [
@@ -94,10 +122,10 @@ export default {
       {from: "bootstrap.js"},
       {from: "webextension/locales/**/*.ftl"},
       {from: "webextension/icons/*"},
-      {from: "webextension/icons/lock.png", to: "icon.png"},
-    ], {
-      copyUnmodified: true,
-    }),
+      {from: "webextension/images/*"},
+      {from: "icon.png"},
+      ...extraCopy,
+    ]),
     new webpack.DefinePlugin({
       "process.env": {
         "NODE_ENV": JSON.stringify(NODE_ENV),
@@ -109,16 +137,37 @@ export default {
       chunks: ["webextension/manage/index"],
       inject: false,
       minify: htmlMinifyOptions,
-      title: "Lockbox",
-      icon: "../icons/lock.png",
+      icon: "../icons/lb_unlocked.svg",
     }),
-    new XMLWebpackPlugin({files: [{
-      template: path.join(__dirname, "src/install.rdf.ejs"),
+    new HTMLWebpackPlugin({
+      template: "template.ejs",
+      filename: "webextension/firstrun/index.html",
+      chunks: ["webextension/firstrun/index"],
+      inject: false,
+      minify: htmlMinifyOptions,
+    }),
+    new HTMLWebpackPlugin({
+      template: "template.ejs",
+      filename: "webextension/popup/unlock/index.html",
+      chunks: ["webextension/popup/unlock/index"],
+      inject: false,
+      minify: htmlMinifyOptions,
+    }),
+    new HTMLWebpackPlugin({
+      template: "template.ejs",
+      filename: "webextension/settings/index.html",
+      chunks: ["webextension/settings/index"],
+      inject: false,
+      minify: htmlMinifyOptions,
+    }),
+    new HTMLWebpackPlugin({
+      template: "install.rdf.ejs",
       filename: "install.rdf",
-      data: thisPackage,
-    }]}),
+      inject: false,
+      package: thisPackage,
+    }),
     new JSONWebpackPlugin({
-      template: "src/webextension/manifest.json.tpl",
+      template: "webextension/manifest.json.tpl",
       filename: "webextension/manifest.json",
       data: thisPackage,
     }),

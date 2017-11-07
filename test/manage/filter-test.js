@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-require("babel-polyfill");
-
 import { expect } from "chai";
 
-import * as filter from "../../src/webextension/manage/filter";
+import * as filter from "src/webextension/manage/filter";
 
-describe("filters", () => {
+describe("manage > filters", () => {
   describe("parseFilterString()", () => {
     it("split on whitespace", () => {
       expect(filter.parseFilterString("foo bar")).to.deep.equal(["foo", "bar"]);
@@ -37,8 +35,9 @@ describe("filters", () => {
 
     describe("empty filter", () => {
       it("match anything", () => {
+        const emptyFilter = filter.parseFilterString(" ");
         for (let i of items) {
-          expect(filter.filterItem(filter.defaultFilter, i)).to.equal(true);
+          expect(filter.filterItem(emptyFilter, i)).to.equal(true);
         }
       });
     });

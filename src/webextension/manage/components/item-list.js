@@ -8,13 +8,15 @@ import React from "react";
 import ItemSummary from "./item-summary";
 import ScrollingList from "../../widgets/scrolling-list";
 
+import styles from "./item-list.css";
+
 export default function ItemList({items, selected, onItemSelected}) {
   return (
-    <ScrollingList data={items} selected={selected}
+    <ScrollingList itemClassName={styles.item} data={items} selected={selected}
                    onItemSelected={onItemSelected}>
-      {({title, username}) => {
+      {({id, title, username}) => {
         return (
-          <ItemSummary title={title} username={username}/>
+          <ItemSummary id={id} title={title} username={username}/>
         );
       }}
     </ScrollingList>
@@ -31,4 +33,16 @@ ItemList.propTypes = {
   ).isRequired,
   selected: PropTypes.string,
   onItemSelected: PropTypes.func.isRequired,
+};
+
+export function ItemListPlaceholder({children}) {
+  return (
+    <div className={styles.empty}>
+      {children}
+    </div>
+  );
+}
+
+ItemListPlaceholder.propTypes = {
+  children: PropTypes.node,
 };

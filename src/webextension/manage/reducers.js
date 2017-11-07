@@ -7,10 +7,11 @@ import { combineReducers } from "redux";
 import {
   LIST_ITEMS_COMPLETED, ADD_ITEM_STARTING, ADD_ITEM_COMPLETED,
   UPDATE_ITEM_COMPLETED, REMOVE_ITEM_COMPLETED, SELECT_ITEM_STARTING,
-  SELECT_ITEM_COMPLETED, START_NEW_ITEM, CANCEL_NEW_ITEM, FILTER_ITEMS,
+  SELECT_ITEM_COMPLETED, START_NEW_ITEM, EDIT_CURRENT_ITEM, EDITOR_CHANGED,
+  CANCEL_EDITING, FILTER_ITEMS, SHOW_MODAL, HIDE_MODAL,
 } from "./actions";
 import { makeItemSummary } from "../common";
-import { defaultFilter } from "./filter";
+import { NEW_ITEM_ID } from "./common";
 
 function maybeAddCurrentItem(state, action) {
   if (state.pendingAdd === action.actionId) {
@@ -72,25 +73,59 @@ export function cacheReducer(state = {
     };
   case SELECT_ITEM_COMPLETED:
     return {...state, currentItem: action.item};
+  case START_NEW_ITEM:
+    return {...state, currentItem: null};
   default:
     return state;
   }
 }
 
 export function uiReducer(state = {
-  newItem: false, selectedItemId: null, filter: defaultFilter,
+  editing: false, editorChanged: false, hideHome: false, selectedItemId: null,
 }, action) {
   switch (action.type) {
-  case START_NEW_ITEM:
-    return {...state, newItem: true};
-  case CANCEL_NEW_ITEM:
-    return {...state, newItem: false};
   case ADD_ITEM_COMPLETED:
-    return {...state, newItem: false, selectedItemId: action.item.id};
+    return {...state, editing: false, editorChanged: false,
+            selectedItemId: action.item.id};
+  case UPDATE_ITEM_COMPLETED:
+    return {...state, editing: false, editorChanged: false};
   case SELECT_ITEM_STARTING:
-    return {...state, selectedItemId: action.id};
+    return {...state, editing: false, editorChanged: false,
+            hideHome: state.editing, selectedItemId: action.id};
+  case SELECT_ITEM_COMPLETED:
+    return {...state, hideHome: false};
+  case START_NEW_ITEM:
+    return {...state, editing: true, selectedItemId: NEW_ITEM_ID};
+  case EDIT_CURRENT_ITEM:
+    return {...state, editing: true};
+  case EDITOR_CHANGED:
+    return {...state, editorChanged: true};
+  case CANCEL_EDITING:
+    if (state.selectedItemId === NEW_ITEM_ID) {
+      return {...state, editing: false, editorChanged: false,
+              selectedItemId: null};
+    }
+    return {...state, editing: false, editorChanged: false};
+  default:
+    return state;
+  }
+}
+
+export function modalReducer(state = {id: null, props: null}, action) {
+  switch (action.type) {
+  case SHOW_MODAL:
+    return {...state, id: action.id, props: action.props};
+  case HIDE_MODAL:
+    return {...state, id: null, props: null};
+  default:
+    return state;
+  }
+}
+
+export function filterReducer(state = "", action) {
+  switch (action.type) {
   case FILTER_ITEMS:
-    return {...state, filter: action.filter};
+    return action.filter;
   default:
     return state;
   }
@@ -99,6 +134,8 @@ export function uiReducer(state = {
 const reducer = combineReducers({
   cache: cacheReducer,
   ui: uiReducer,
+  modal: modalReducer,
+  filter: filterReducer,
 });
 
 export default reducer;

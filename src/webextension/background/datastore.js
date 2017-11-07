@@ -3,12 +3,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import * as DataStore from "lockbox-datastore";
+import * as telemetry from "./telemetry";
 
 let datastore;
 
+async function recordMetric(method, itemid, fields) {
+  let extra = {
+    itemid,
+  };
+  if (fields) {
+    extra = {
+      ...extra,
+      fields,
+    };
+  }
+  telemetry.recordEvent(method, "datastore", extra);
+}
+
 export default async function openDataStore() {
   if (!datastore) {
-    datastore = (typeof DataStore.open === "function") ? await DataStore.open() : DataStore.create();
+    datastore = await DataStore.open({
+      recordMetric,
+    });
   }
   return datastore;
 }

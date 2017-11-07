@@ -7,8 +7,7 @@
 
   "applications": {
     "gecko": {
-      "id": "{{id}}",
-      "update_url": "https://testpilot.firefox.com/files/{{id}}/updates.json"
+      "id": "{{id}}"
     }
   },
 
@@ -19,7 +18,7 @@
   "browser_action": {
     "browser_style": true,
     "default_icon": {
-      "512": "icons/lock.png"
+      "32": "icons/lb_locked.svg"
     },
     "default_title": "Lockbox"
   },
@@ -30,5 +29,15 @@
         "default": "Ctrl+Shift+L"
       }
     }
+  },
+
+  "permissions": [
+    "identity",
+    "storage"
+  ],
+
+  "options_ui": {
+    "page": "settings/index.html",
+    "browser_style": true
   }
 }

@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-require("babel-polyfill");
-
 import { expect } from "chai";
 
-import * as actions from "../../src/webextension/manage/actions";
+import * as actions from "src/webextension/manage/actions";
 import {
-  cacheReducer, uiReducer,
-} from "../../src/webextension/manage/reducers";
+  cacheReducer, uiReducer, modalReducer, filterReducer,
+} from "src/webextension/manage/reducers";
+import { NEW_ITEM_ID } from "src/webextension/manage/common";
 
-describe("reducers", () => {
+describe("manage > reducers", () => {
   describe("cache reducer", () => {
     it("initial state", () => {
       const action = {};
@@ -319,51 +318,54 @@ describe("reducers", () => {
         pendingAdd: null,
       });
     });
+
+    it("handle START_NEW_ITEM", () => {
+      const state = {
+        items: [
+          {id: "1", title: "title", username: "username",
+           origins: ["origin.com"]},
+        ],
+        currentItem: {
+          title: "title",
+          id: "1",
+          origins: ["origin.com"],
+          entry: {
+            kind: "login",
+            username: "username",
+            password: "password",
+            notes: "notes",
+          },
+        },
+        pendingAdd: null,
+      };
+      const action = {
+        type: actions.START_NEW_ITEM,
+      };
+
+      expect(cacheReducer(state, action)).to.deep.equal({
+        items: state.items,
+        currentItem: null,
+        pendingAdd: null,
+      });
+    });
   });
 
   describe("ui reducer", () => {
     it("initial state", () => {
       expect(uiReducer(undefined, {})).to.deep.equal({
-        newItem: false,
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
         selectedItemId: null,
-        filter: [],
-      });
-    });
-
-    it("handle START_NEW_ITEM", () => {
-      const action = {
-        type: actions.START_NEW_ITEM,
-      };
-
-      expect(uiReducer(undefined, action)).to.deep.equal({
-        newItem: true,
-        selectedItemId: null,
-        filter: [],
-      });
-    });
-
-    it("handle CANCEL_NEW_ITEM", () => {
-      const state = {
-        newItem: true,
-        selectedItemId: null,
-        filter: [],
-      };
-      const action = {
-        type: actions.CANCEL_NEW_ITEM,
-      };
-
-      expect(uiReducer(state, action)).to.deep.equal({
-        newItem: false,
-        selectedItemId: null,
-        filter: [],
       });
     });
 
     it("handle ADD_ITEM_COMPLETED", () => {
       const state = {
-        newItem: true,
+        editing: true,
+        editorChanged: true,
+        hideHome: false,
         selectedItemId: null,
-        filter: [],
       };
       const action = {
         type: actions.ADD_ITEM_COMPLETED,
@@ -373,17 +375,38 @@ describe("reducers", () => {
       };
 
       expect(uiReducer(state, action)).to.deep.equal({
-        newItem: false,
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
         selectedItemId: "1",
-        filter: [],
       });
     });
 
-    it("handle SELECT_ITEM_STARTING", () => {
+    it("handle UPDATE_ITEM_COMPLETED", () => {
       const state = {
-        newItem: false,
+        editing: true,
+        editorChanged: true,
+        hideHome: false,
+        selectedItemId: "1",
+      };
+      const action = {
+        type: actions.UPDATE_ITEM_COMPLETED,
+      };
+
+      expect(uiReducer(state, action)).to.deep.equal({
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
+        selectedItemId: "1",
+      });
+    });
+
+    it("handle SELECT_ITEM_STARTING (not editing)", () => {
+      const state = {
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
         selectedItemId: null,
-        filter: [],
       };
       const action = {
         type: actions.SELECT_ITEM_STARTING,
@@ -391,25 +414,184 @@ describe("reducers", () => {
       };
 
       expect(uiReducer(state, action)).to.deep.equal({
-        newItem: false,
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
         selectedItemId: "1",
-        filter: [],
       });
     });
 
-    it("handle FILTER_ITEMS", () => {
+    it("handle SELECT_ITEM_STARTING (editing)", () => {
       const state = {
-        newItem: false,
-        filter: [],
+        editing: true,
+        editorChanged: true,
+        hideHome: false,
+        selectedItemId: null,
       };
       const action = {
-        type: actions.FILTER_ITEMS,
-        filter: ["my filter"],
+        type: actions.SELECT_ITEM_STARTING,
+        id: "1",
       };
 
       expect(uiReducer(state, action)).to.deep.equal({
-        newItem: false,
-        filter: ["my filter"],
+        editing: false,
+        editorChanged: false,
+        hideHome: true,
+        selectedItemId: "1",
+      });
+    });
+
+    it("handle SELECT_ITEM_COMPLETED", () => {
+      const state = {
+        editing: false,
+        editorChanged: false,
+        hideHome: true,
+        selectedItemId: "1",
+      };
+      const action = {
+        type: actions.SELECT_ITEM_COMPLETED,
+      };
+
+      expect(uiReducer(state, action)).to.deep.equal({
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
+        selectedItemId: "1",
+      });
+    });
+
+    it("handle START_NEW_ITEM", () => {
+      const action = {
+        type: actions.START_NEW_ITEM,
+      };
+
+      expect(uiReducer(undefined, action)).to.deep.equal({
+        editing: true,
+        editorChanged: false,
+        hideHome: false,
+        selectedItemId: NEW_ITEM_ID,
+      });
+    });
+
+    it("handle EDIT_CURRENT_ITEM", () => {
+      const action = {
+        type: actions.EDIT_CURRENT_ITEM,
+      };
+
+      expect(uiReducer(undefined, action)).to.deep.equal({
+        editing: true,
+        editorChanged: false,
+        hideHome: false,
+        selectedItemId: null,
+      });
+    });
+
+    it("handle EDITOR_CHANGED", () => {
+      const state = {
+        editing: true,
+        editorChanged: false,
+        hideHome: false,
+        selectedItemId: NEW_ITEM_ID,
+      };
+      const action = {
+        type: actions.EDITOR_CHANGED,
+      };
+
+      expect(uiReducer(state, action)).to.deep.equal({
+        editing: true,
+        editorChanged: true,
+        hideHome: false,
+        selectedItemId: NEW_ITEM_ID,
+      });
+    });
+
+    it("handle CANCEL_EDITING (new item)", () => {
+      const state = {
+        editing: true,
+        editorChanged: true,
+        hideHome: false,
+        selectedItemId: NEW_ITEM_ID,
+      };
+      const action = {
+        type: actions.CANCEL_EDITING,
+      };
+
+      expect(uiReducer(state, action)).to.deep.equal({
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
+        selectedItemId: null,
+      });
+    });
+
+    it("handle CANCEL_EDITING (existing item)", () => {
+      const state = {
+        editing: true,
+        editorChanged: true,
+        hideHome: false,
+        selectedItemId: "1",
+      };
+      const action = {
+        type: actions.CANCEL_EDITING,
+      };
+
+      expect(uiReducer(state, action)).to.deep.equal({
+        editing: false,
+        editorChanged: false,
+        hideHome: false,
+        selectedItemId: "1",
+      });
+    });
+  });
+
+  describe("filter reducer", () => {
+    it("initial state", () => {
+      expect(filterReducer(undefined, {})).to.equal("");
+    });
+
+    it("handle FILTER_ITEMS", () => {
+      const action = {
+        type: actions.FILTER_ITEMS,
+        filter: "my filter",
+      };
+
+      expect(filterReducer(undefined, action)).to.equal("my filter");
+    });
+  });
+
+  describe("modal reducer", () => {
+    it("initial state", () => {
+      expect(modalReducer(undefined, {})).to.deep.equal({
+        id: null,
+        props: null,
+      });
+    });
+
+    it("handle SHOW_MODAL", () => {
+      const action = {
+        type: actions.SHOW_MODAL,
+        id: "my_modal",
+        props: {prop: "value"},
+      };
+
+      expect(modalReducer(undefined, action)).to.deep.equal({
+        id: "my_modal",
+        props: {prop: "value"},
+      });
+    });
+
+    it("handle HIDE_MODAL", () => {
+      const state = {
+        id: "my_modal",
+        props: {prop: "value"},
+      };
+      const action = {
+        type: actions.HIDE_MODAL,
+      };
+
+      expect(modalReducer(state, action)).to.deep.equal({
+        id: null,
+        props: null,
       });
     });
   });

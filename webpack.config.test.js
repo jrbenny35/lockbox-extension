@@ -2,19 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import path from "path";
+import webpack from "webpack";
 import combineLoaders from "webpack-combine-loaders";
-import nodeExternals from "webpack-node-externals";
 
 export default {
-  target: "node",
-  externals: [nodeExternals()],
-  devtool: "cheap-module-source-map",
+  devtool: "inline-source-map",
 
   module: {
     loaders: [{
       test: /\.js$/,
       exclude: /node_modules/,
       loader: "babel-loader",
+    }, {
+      test: /\.txt$/,
+      use: "raw-loader",
     }, {
       test: /\.css$/,
       exclude: /node_modules/,
@@ -30,5 +32,20 @@ export default {
         },
       }]),
     }],
+  },
+
+  plugins: [
+    new webpack.DefinePlugin({
+      "process.env": {
+        "NODE_ENV": JSON.stringify("test"),
+      },
+    }),
+  ],
+
+  resolve: {
+    alias: {
+      src: path.resolve(__dirname, "src"),
+      test: path.resolve(__dirname, "test"),
+    },
   },
 };

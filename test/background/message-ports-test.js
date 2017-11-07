@@ -2,29 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-require("babel-polyfill");
-
 import chai, { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
+import fetchMock from "fetch-mock";
 import sinon from "sinon";
 import sinonChai from "sinon-chai";
+
+import "test/mocks/browser";
+import openDataStore from "src/webextension/background/datastore";
+import initializeMessagePorts from "src/webextension/background/message-ports";
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
-import openDataStore from "../../src/webextension/background/datastore";
-import initializeMessagePorts from
-       "../../src/webextension/background/message-ports";
+describe("background > message ports", () => {
+  const password = "n0str0m0";
 
-describe("message ports (background side)", () => {
   let itemId, selfMessagePort, otherMessagePort, selfListener, otherListener;
 
   before(async() => {
-    await openDataStore().then(async(ds) => ds.initialize());
+    await openDataStore();
     initializeMessagePorts();
 
     selfMessagePort = browser.runtime.connect();
     otherMessagePort = browser.runtime.connect(undefined, {mockPrimary: false});
+  });
+
+  after(() => {
+    // Clear the listeners set in <src/webextension/background/messagePorts.js>.
+    browser.runtime.onConnect.mockClearListener();
+    browser.runtime.onMessage.mockClearListener();
+
+    fetchMock.restore();
   });
 
   beforeEach(() => {
@@ -37,10 +46,57 @@ describe("message ports (background side)", () => {
     otherMessagePort.onMessage.mockClearListener();
   });
 
-  after(() => {
-    // Clear the listeners set in <src/webextension/background/messagePorts.js>.
-    browser.runtime.onConnect.mockClearListener();
-    browser.runtime.onMessage.mockClearListener();
+  // Note: these tests are in a specific order since we modify the datastore as
+  // we test. Each test assumes the previous has passed.
+
+  it('handle "open_view"', async() => {
+    const result = await browser.runtime.sendMessage({
+      type: "open_view",
+      name: "firstrun",
+    });
+
+    expect(result).to.deep.equal({});
+  });
+
+  it('handle "close_view"', async() => {
+    const result = await browser.runtime.sendMessage({
+      type: "close_view",
+      name: "firstrun",
+    });
+
+    expect(result).to.deep.equal({});
+  });
+
+  it('handle "signin"', async() => {
+    const result = await browser.runtime.sendMessage({
+      type: "signin", interactive: true,
+    });
+
+    expect(result).to.have.property("uid").that.is.a("string");
+  });
+
+  it('handle "initialize"', async() => {
+    const result = await browser.runtime.sendMessage({
+      type: "initialize", password,
+    });
+
+    expect(result).to.deep.equal({});
+  });
+
+  it('handle "lock"', async() => {
+    const result = await browser.runtime.sendMessage({
+      type: "lock",
+    });
+
+    expect(result).to.deep.equal({});
+  });
+
+  it('handle "unlock"', async() => {
+    const result = await browser.runtime.sendMessage({
+      type: "unlock", password,
+    });
+
+    expect(result).to.deep.equal({});
   });
 
   it('handle "add_item"', async() => {
@@ -137,10 +193,27 @@ describe("message ports (background side)", () => {
     });
   });
 
+  it('handle "proxy_telemetry_event"', async() => {
+    const recordEvent = sinon.stub().resolves({});
+    initializeMessagePorts.__Rewire__("telemetry", {recordEvent});
+    const result = await browser.runtime.sendMessage({
+      type: "proxy_telemetry_event",
+      method: "method",
+      object: "object",
+      extra: {extra: "value"},
+    });
+    initializeMessagePorts.__ResetDependency__("telemetry");
+
+    expect(result).to.deep.equal({});
+    expect(recordEvent).to.have.been.calledWith("method", "object",
+                                                {extra: "value"});
+  });
+
   it("handle unknown message type", async() => {
-    await expect(browser.runtime.sendMessage({
+    const result = await browser.runtime.sendMessage({
       type: "nonexist",
-    })).to.be.rejectedWith(Error);
+    });
+    expect(result).to.equal(null);
   });
 
   it("handle message port disconnect", async() => {
@@ -160,5 +233,15 @@ describe("message ports (background side)", () => {
       item,
     });
     expect(otherListener).to.have.callCount(0);
+  });
+
+  // this test has to be last, or all the message-ports tests after it FAIL.
+  // Eventually better isolation or startup/teardown may be done
+  it('handle "reset"', async() => {
+    const result = await browser.runtime.sendMessage({
+      type: "reset",
+    });
+
+    expect(result).to.deep.equal({});
   });
 });
