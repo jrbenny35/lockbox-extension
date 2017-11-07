@@ -18,7 +18,7 @@ def firefox_options(firefox_options):
 @pytest.fixture(scope='function')
 def hostname(pytestconfig, selenium):
     """Install Lockbox."""
-    addon = os.path.join(pytestconfig.rootdir, 'addon.xpi')
+    addon = os.path.abspath('addon.xpi')
     _id = selenium.install_addon(addon, temporary=True)
     with selenium.context(selenium.CONTEXT_CHROME):
         hostname = selenium.execute_script("""
