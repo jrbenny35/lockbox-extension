@@ -3,7 +3,7 @@
 Thank you for checking out Mozilla's Lockbox WebExtension!
 This repository contains Selenium tests used to test the discovery pane.
 
-Note: These tests are written in python and use pytest as the runner.
+Note: These tests are written in python 3.6 and use pytest as the runner.
 
 ## How to run the tests locally
 
@@ -26,7 +26,7 @@ npm run package
 ```
 
 ### Run the tests
-The tests must be run in Firefox 56 or later.
+The tests must be run in Firefox 57 or later.
 
 1. Install [Tox].
 2. Download geckodriver [v0.19.0][geckodriver] or later and ensure it's executable and
